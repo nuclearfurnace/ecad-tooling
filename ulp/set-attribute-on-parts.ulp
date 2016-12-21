@@ -1,0 +1,109 @@
+#require 6.5100
+
+#usage "en: <b>Set an attribute en masse</b>\n"
+           "<p>"
+           "Sets an attribute on multiple parts at once, referenced by the part triple: "
+           " deviceset, device, and value."
+           "<p>"
+           "<author>Author: toby@nuclearfurnace.com</author>"
+
+string PartTriple;
+string CurrentPartTriple;
+string AttributeName;
+string AttributeValue;
+string Commands[];
+int i = 0;
+int NumCommands = 0;
+string cmd;
+
+if(!schematic)
+{
+  dlgMessageBox("<hr><b>ERROR: No schematic!</b><p>\nThis program can only work in the schematic editor.");
+  exit(EXIT_FAILURE);
+}
+
+int Result = dlgDialog("Set attribute on multiple parts")
+{
+  dlgHBoxLayout
+  {
+    dlgLabel("&Part Triple");
+    dlgStringEdit(PartTriple);
+  }
+  dlgHBoxLayout
+  {
+    dlgLabel("&Attribute Name");
+    dlgStringEdit(AttributeName);
+  }
+  dlgHBoxLayout
+  {
+    dlgLabel("&Attribute Value");
+    dlgStringEdit(AttributeValue);
+  }
+  dlgHBoxLayout
+  {
+    dlgStretch(0);
+    dlgPushButton("+&OK") dlgAccept();
+    dlgStretch(1);
+    dlgPushButton("-&Cancel") dlgReject();
+    dlgStretch(0);
+  }
+};
+if (!Result) exit(EXIT_FAILURE);
+
+void FindEligibleParts(void)
+{
+  schematic (SCH)
+  {
+    SCH.sheets (S)
+    {
+      /* Switch to the correct sheet since we can't set attributes for a part not on the current sheet. */
+      sprintf(cmd, "EDIT .s%d;", S.number);
+      Commands[NumCommands] = cmd;
+      NumCommands++;
+
+      S.instances (I)
+      {
+        if (I.part.device.package)
+        {
+          if (I.part.populate)
+          {
+            sprintf(CurrentPartTriple, "%s-%s", I.part.device.name, I.part.value);
+            if(PartTriple == CurrentPartTriple)
+            {
+              /*
+               * Delete the attribute if it already exists, then make sure we don't display the new one,
+               * then add the new one to the part.
+               */
+              sprintf(cmd, "ATTRIBUTE %s %s DELETE;", I.part.name, AttributeName);
+              Commands[NumCommands] = cmd;
+              NumCommands++;
+
+              sprintf(cmd, "CHANGE DISPLAY OFF;");
+              Commands[NumCommands] = cmd;
+              NumCommands++;
+
+              sprintf(cmd, "ATTRIBUTE %s %s '%s';", I.part.name, AttributeName, AttributeValue);
+              Commands[NumCommands] = cmd;
+              NumCommands++;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+output("/tmp/testing-attribute-add.txt", "wt")
+{
+  /* Find all the eligible parts. */
+  FindEligibleParts();
+
+  /* Generate a single command string to have EAGLE run for us. */
+  string fullCommand = "";
+  for(i = 0; i < NumCommands; i++)
+  {
+    fullCommand += Commands[i];
+  }
+
+  exit(fullCommand);
+}
