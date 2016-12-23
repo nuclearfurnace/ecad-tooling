@@ -87,22 +87,23 @@ def run(schematic_file, options):
 def check_for_missing_or_empty_part_numbers(parts, options):
   parts = only_placed_components(parts)
   parts = filter(lambda x: not has_part_number(x), parts)
-  grouped_parts = list(groupby(sorted(parts, key=get_device_key), lambda x: get_device_key(x)))
+  grouped_parts = groupby(sorted(parts, key=get_device_key), get_device_key)
 
   for (k, g) in grouped_parts:
     yield "[missing-empty-part-number] Found part group {} with missing or empty part numbers: %s".format(k, ', '.join(map(lambda x: x.attrib.get('name'), g)))
 
 def check_for_uniqueness_in_part_triples(parts, options):
-  grouped_parts = list(groupby(sorted(parts, key=get_device_key), lambda x: get_device_key(x)))
+  parts = only_placed_components(parts)
+  grouped_parts = groupby(sorted(parts, key=get_device_key), get_device_key)
   for (k, g) in grouped_parts:
-    unique_part_numbers = map(lambda x: x.attrib.get('PN', ''), g)
+    unique_part_numbers = map(lambda x: get_part_attribute(x, 'PN'), g)
     unique_part_numbers = filter(lambda x: x != '', unique_part_numbers)
     unique_part_numbers = set(unique_part_numbers)
 
     # We only care when there's two or more part numbers, because triples with
     # no part number whatsoever, or some with and some without, are caught before.
     if len(unique_part_numbers) > 1:
-      yield "[uniqueness] Found part group {} with two or more part numbers in use: %s".format(k, ', '.join(unique_part_numbers))
+      yield "[uniqueness] Found part group {} with two or more part numbers in use: {}".format(k, ', '.join(unique_part_numbers))
 
 def check_for_height_attribute(parts, options):
   if options.check_height:
