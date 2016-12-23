@@ -9,7 +9,7 @@ def is_supply_part(part):
   library = part.attrib.get('library', '')
   device = part.attrib.get('device', '')
 
-  return library.startswith('supply') and device == ''
+  return library.startswith('supplies') and device == ''
 
 def is_helper_part(part):
   part_name = part.attrib.get('name', '')
