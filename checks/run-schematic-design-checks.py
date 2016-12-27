@@ -3,49 +3,8 @@
 import sys
 import xml.etree.ElementTree as ET
 from optparse import OptionParser
-from itertools import groupby, chain
-
-def is_supply_part(part):
-  library = part.attrib.get('library', '')
-  device = part.attrib.get('device', '')
-
-  return library.startswith('supplies') and device == ''
-
-def is_helper_part(part):
-  part_name = part.attrib.get('name', '')
-
-  # Don't care about sheets.
-  if part_name.startswith('SHEET'):
-    return True
-
-  # Testpoints are just exposed copper.
-  if part_name.startswith('TP'):
-    return True
-
-  return False
-
-def get_part_attribute(part, name):
-  attribs = part.findall('attribute')
-  for attrib in attribs:
-    if attrib.attrib.get('name', '') == name:
-      return attrib.get('value', '')
-
-  return ''
-
-def has_part_number(part):
-  return get_part_attribute(part, 'PN') != ''
-
-def get_device_key(part):
-  deviceset = part.attrib.get('deviceset', '')
-  device = part.attrib.get('device', '')
-  value = part.attrib.get('value', '')
-
-  return "{}{}-{} (value: {})".format(deviceset, device, value, value)
-
-def only_placed_components(parts):
-  parts = filter(lambda x: not is_supply_part(x), parts)
-  parts = filter(lambda x: not is_helper_part(x), parts)
-  return parts
+from itertools import chain
+from helpers import get_parts_by_triple, get_part_attribute, has_part_number, only_placed_components
 
 def run(schematic_file, options):
   tree_root = ET.parse(schematic_file).getroot()
@@ -87,14 +46,14 @@ def run(schematic_file, options):
 def check_for_missing_or_empty_part_numbers(parts, options):
   parts = only_placed_components(parts)
   parts = filter(lambda x: not has_part_number(x), parts)
-  grouped_parts = groupby(sorted(parts, key=get_device_key), get_device_key)
+  grouped_parts = get_parts_by_triple(parts)
 
   for (k, g) in grouped_parts:
     yield "[missing-empty-part-number] Found part group {} with missing or empty part numbers: {}".format(k, ', '.join(map(lambda x: x.attrib.get('name'), g)))
 
 def check_for_uniqueness_in_part_triples(parts, options):
   parts = only_placed_components(parts)
-  grouped_parts = groupby(sorted(parts, key=get_device_key), get_device_key)
+  grouped_parts = get_parts_by_triple(parts)
   for (k, g) in grouped_parts:
     unique_part_numbers = map(lambda x: get_part_attribute(x, 'PN'), g)
     unique_part_numbers = filter(lambda x: x != '', unique_part_numbers)
