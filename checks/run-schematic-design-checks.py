@@ -90,7 +90,7 @@ def check_for_missing_or_empty_part_numbers(parts, options):
   grouped_parts = groupby(sorted(parts, key=get_device_key), get_device_key)
 
   for (k, g) in grouped_parts:
-    yield "[missing-empty-part-number] Found part group {} with missing or empty part numbers: %s".format(k, ', '.join(map(lambda x: x.attrib.get('name'), g)))
+    yield "[missing-empty-part-number] Found part group {} with missing or empty part numbers: {}".format(k, ', '.join(map(lambda x: x.attrib.get('name'), g)))
 
 def check_for_uniqueness_in_part_triples(parts, options):
   parts = only_placed_components(parts)
