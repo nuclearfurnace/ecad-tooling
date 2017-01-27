@@ -65,11 +65,9 @@ void FindEligibleParts(void)
       {
         if (I.part.device.package)
         {
-          if (I.part.populate)
+          sprintf(CurrentPartTriple, "%s-%s", I.part.device.name, I.part.value);
+          if(strstr(CurrentPartTriple, PartTriple) == 0)
           {
-            sprintf(CurrentPartTriple, "%s-%s", I.part.device.name, I.part.value);
-            if(PartTriple == CurrentPartTriple)
-            {
               /*
                * Delete the attribute if it already exists, then make sure we don't display the new one,
                * then add the new one to the part.
@@ -85,7 +83,6 @@ void FindEligibleParts(void)
               sprintf(cmd, "ATTRIBUTE %s %s '%s';", I.part.name, AttributeName, AttributeValue);
               Commands[NumCommands] = cmd;
               NumCommands++;
-            }
           }
         }
       }
